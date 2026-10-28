@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>Grade Rod</title>
+
+<style>
+body{
+font-family:Arial;
+margin:0;
+padding:12px;
+background:#eee;
+}
+
+h2{
+margin:4px 0 12px;
+color:#174f2c;
+}
+
+.card{
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:8px;
+}
+
+.setup{
+display:grid;
+grid-template-columns:80px 1fr;
+gap:10px;
+align-items:start;
+}
+
+.setup label{
+font-weight:bold;
+padding-top:10px;
+}
+
+input{
+font-size:20px;
+padding:8px;
+box-sizing:border-box;
+min-width:0;
+width:100%;
+}
+
+.inchDisplay{
+font-size:14px;
+font-weight:bold;
+color:#555;
+margin-top:3px;
+min-height:17px;
+}
+
+#hoi{
+font-size:32px;
+color:#174f2c;
+font-weight:bold;
+margin-top:14px;
+}
+
+#hoiInches{
+font-size:18px;
+color:#555;
+font-weight:bold;
+margin-top:2px;
+}
+
+.targetHead,
+.slot{
+display:grid;
+grid-template-columns:1fr 105px 95px;
+gap:6px;
+}
+
+.targetHead{
+font-size:12px;
+font-weight:bold;
+margin:10px 0 4px;
+}
+
+.slot{
+margin-bottom:9px;
+align-items:start;
+}
+
+.slot input{
+width:100%;
+}
+
+.targetBox{
+min-width:0;
+}
+
+.rodResult{
+font-size:20px;
+font-weight:bold;
+text-align:center;
+color:#174f2c;
+padding-top:7px;
+}
+
+.rodInches{
+font-size:13px;
+color:#555;
+margin-top:3px;
+white-space:nowrap;
+}
+
+.bad{
+color:#a00000;
+}
+
+.clearButton{
+width:100%;
+margin-top:10px;
+padding:11px;
+font-size:16px;
+font-weight:bold;
+background:#a00000;
+color:white;
+border:0;
+border-radius:6px;
+}
+
+.head,
+.r{
+display:grid;
+grid-template-columns:1fr 1fr;
+padding:6px 10px;
+}
+
+.head{
+background:#174f2c;
+color:white;
+font-weight:bold;
+}
+
+#rod{
+height:350px;
+overflow:auto;
+background:white;
+border:1px solid #555;
+}
+
+.r{
+border-bottom:1px solid #ddd;
+}
+
+.t{
+background:#e8f5e8;
+font-weight:bold;
+}
+
+.decimalValue{
+font-size:16px;
+}
+
+.inchValue{
+font-size:12px;
+color:#666;
+margin-top:2px;
+}
+
+@media(max-width:430px){
+
+body{
+padding:8px;
+}
+
+.card{
+padding:10px;
+}
+
+.setup{
+grid-template-columns:75px 1fr;
+}
+
+.targetHead,
+.slot{
+grid-template-columns:1fr 96px 88px;
+gap:4px;
+}
+
+input{
+font-size:17px;
+padding:8px 5px;
+}
+
+.rodResult{
+font-size:18px;
+}
+
+.rodInches{
+font-size:11px;
+}
+
+#hoi{
+font-size:30px;
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<h2>Field Grade Book</h2>
+
+<div class="card">
+
+<div class="setup">
+
+<label for="b">BENCH:</label>
+
+<div>
+<input id="b"
+inputmode="decimal"
+value="100.00">
+
+<div id="bInches"
+class="inchDisplay">
+</div>
+</div>
+
+<label for="s">SHOT:</label>
+
+<div>
+<input id="s"
+inputmode="decimal"
+value="2.54">
+
+<div id="sInches"
+class="inchDisplay">
+</div>
+</div>
+
+</div>
+
+<div id="hoi">
+HOI: 102.54
+</div>
+
+<div id="hoiInches">
+</div>
+
+</div>
+
+<div class="card">
+
+<b>SAVED TARGET ELEVATIONS</b>
+
+<div class="targetHead">
+<div>LABEL</div>
+<div>TARGET</div>
+<div>ROD</div>
+</div>
+
+<div id="slots"></div>
+
+<button class="clearButton"
+onclick="clearTargets()">
+CLEAR ALL TARGETS
+</button>
+
+</div>
+
+<div class="head">
+<div>ROD</div>
+<div>ELEVATION</div>
+</div>
+
+<div id="rod"></div>
+
+<script>
+
+const $=id=>
+document.getElementById(id);
+
+const n=v=>
+Math.round(Number(v)*100);
+
+const f=v=>
+(v/100).toFixed(2);
+
+let H=0;
+
+function gcd(a,b){
+
+while(b){
+let t=b;
+b=a%b;
+a=t;
+}
+
+return a;
+
+}
+
+function feetInches(value){
+
+if(isNaN(value)){
+return "--";
+}
+
+let negative=value<0;
+
+let totalEighths=
+Math.round(
+Math.abs(value)*12*8
+);
+
+let feet=
+Math.floor(
+totalEighths/96
+);
+
+let remaining=
+totalEighths%96;
+
+let inches=
+Math.floor(
+remaining/8
+);
+
+let eighths=
+remaining%8;
+
+let fraction="";
+
+if(eighths>0){
+
+let divisor=
+gcd(eighths,8);
+
+fraction=
+" "+
+(eighths/divisor)+
+"/"+
+(8/divisor);
+
+}
+
+let result=
+feet+
+"'-"+
+inches+
+fraction+
+'"';
+
+if(negative){
+result="-"+result;
+}
+
+return result;
+
+}
+
+function makeSlots(){
+
+let html="";
+
+for(let i=1;i<=8;i++){
+
+html+=
+'<div class="slot">'+
+
+'<input id="l'+i+
+'" placeholder="Label '+i+'">'+
+
+'<div class="targetBox">'+
+'<input id="e'+i+
+'" inputmode="decimal" '+
+'placeholder="Elevation">'+
+
+'<div id="ei'+i+
+'" class="inchDisplay"></div>'+
+'</div>'+
+
+'<div id="r'+i+
+'" class="rodResult">'+
+'<div>--</div>'+
+'<div class="rodInches">--</div>'+
+'</div>'+
+
+'</div>';
+
+}
+
+$("slots").innerHTML=html;
+
+}
+
+function load(id,def){
+
+let saved=
+localStorage.getItem(id);
+
+$(id).value=
+saved===null
+?def
+:saved;
+
+}
+
+function save(){
+
+localStorage.setItem(
+"b",
+$("b").value
+);
+
+localStorage.setItem(
+"s",
+$("s").value
+);
+
+for(let i=1;i<=8;i++){
+
+localStorage.setItem(
+"l"+i,
+$("l"+i).value
+);
+
+localStorage.setItem(
+"e"+i,
+$("e"+i).value
+);
+
+}
+
+}
+
+function clearTargets(){
+
+if(!confirm(
+"Clear all 8 labels and target elevations?"
+)){
+return;
+}
+
+for(let i=1;i<=8;i++){
+
+$("l"+i).value="";
+$("e"+i).value="";
+
+localStorage.removeItem(
+"l"+i
+);
+
+localStorage.removeItem(
+"e"+i
+);
+
+}
+
+updateTargets();
+
+}
+
+function updateSetupInches(){
+
+let bench=
+Number($("b").value);
+
+let shot=
+Number($("s").value);
+
+$("bInches").textContent=
+isNaN(bench)
+?"--"
+:feetInches(bench);
+
+$("sInches").textContent=
+isNaN(shot)
+?"--"
+:feetInches(shot);
+
+$("hoiInches").textContent=
+feetInches(H/100);
+
+}
+
+function updateTargets(){
+
+for(let i=1;i<=8;i++){
+
+let value=
+$("e"+i).value.trim();
+
+let target=
+n(value);
+
+let result=
+$("r"+i);
+
+let inches=
+$("ei"+i);
+
+if(
+value===""||
+isNaN(target)
+){
+
+result.innerHTML=
+'<div>--</div>'+
+'<div class="rodInches">--</div>';
+
+result.className=
+"rodResult";
+
+inches.textContent=
+"--";
+
+continue;
+
+}
+
+inches.textContent=
+feetInches(
+target/100
+);
+
+let reading=
+H-target;
+
+if(
+reading<1||
+reading>1600
+){
+
+result.innerHTML=
+'<div>OUT</div>'+
+'<div class="rodInches">--</div>';
+
+result.className=
+"rodResult bad";
+
+}else{
+
+result.innerHTML=
+'<div>'+
+f(reading)+
+'</div>'+
+
+'<div class="rodInches">'+
+feetInches(reading/100)+
+'</div>';
+
+result.className=
+"rodResult";
+
+}
+
+}
+
+}
+
+function build(){
+
+let B=
+n($("b").value);
+
+let S=
+n($("s").value);
+
+if(isNaN(B)){
+B=0;
+}
+
+if(isNaN(S)){
+S=0;
+}
+
+H=B+S;
+
+$("hoi").textContent=
+"HOI: "+f(H);
+
+updateSetupInches();
+
+let html="";
+
+for(let i=1;i<=1600;i++){
+
+let c=
+"r"+
+(i%10===0
+?" t"
+:"");
+
+html+=
+'<div class="'+c+'">'+
+
+'<div>'+
+'<div class="decimalValue">'+
+f(i)+
+'</div>'+
+
+'<div class="inchValue">'+
+feetInches(i/100)+
+'</div>'+
+'</div>'+
+
+'<div>'+
+'<div class="decimalValue">'+
+f(H-i)+
+'</div>'+
+
+'<div class="inchValue">'+
+feetInches((H-i)/100)+
+'</div>'+
+'</div>'+
+
+'</div>';
+
+}
+
+$("rod").innerHTML=
+html;
+
+updateTargets();
+
+save();
+
+}
+
+makeSlots();
+
+load(
+"b",
+"100.00"
+);
+
+load(
+"s",
+"2.54"
+);
+
+for(let i=1;i<=8;i++){
+
+load(
+"l"+i,
+""
+);
+
+load(
+"e"+i,
+""
+);
+
+$("l"+i).oninput=
+save;
+
+$("e"+i).oninput=
+function(){
+
+updateTargets();
+
+save();
+
+};
+
+}
+
+$("b").oninput=
+build;
+
+$("s").oninput=
+build;
+
+build();
+
+</script>
+
+</body>
+</html>
